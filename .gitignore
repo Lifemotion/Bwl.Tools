@@ -1,0 +1,6 @@
+*.suo
+bin
+obj
+debug
+release
+refs-src

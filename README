@@ -1,0 +1,8 @@
+Bwl.Tools
+Igor I.Koshelev (igor@lifemotion.ru)
+
+Small portable VB.NET tools. Each file can be used separately.
+
+1. Use !build.cmd to export files to refs-src.
+2. Copy refs-src or some files to your project folder.
+3. Connect files to project with "Add existing..."/"As Link"
