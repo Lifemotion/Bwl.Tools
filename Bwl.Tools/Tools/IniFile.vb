@@ -150,6 +150,7 @@ Public Class IniFile
         Try
             Dim fileID As Integer = FreeFile()
             FileOpen(fileID, _iniFile, OpenMode.Input, OpenAccess.Read)
+            FileClose(fileID)
         Catch ex As Exception
             Return False
         End Try
