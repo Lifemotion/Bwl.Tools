@@ -63,7 +63,6 @@
     <Import Include="System.Data" />
     <Import Include="System.Diagnostics" />
     <Import Include="System.Linq" />
-    <Import Include="System.Xml.Linq" />
     <Import Include="System.Threading.Tasks" />
   </ItemGroup>
   <ItemGroup>
@@ -84,6 +83,7 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
     <Compile Include="ToolsTests\CryptoToolsTest.vb" />
+    <Compile Include="ToolsTests\FieldMonitorTest.vb" />
     <Compile Include="ToolsTests\ImageTest.vb" />
     <Compile Include="ToolsTests\IniTest.vb" />
     <Compile Include="ToolsTests\JpegSaverTest.vb" />
@@ -92,6 +92,7 @@
     <Compile Include="ToolsTests\StopwatchTest.vb" />
     <Compile Include="ToolsTests\StringToolsTest.vb" />
     <Compile Include="Tools\CryptoTools.vb" />
+    <Compile Include="Tools\FieldMonitor.vb" />
     <Compile Include="Tools\Image.vb" />
     <Compile Include="Tools\IniFile.vb" />
     <Compile Include="Tools\JpegSaver.vb" />
