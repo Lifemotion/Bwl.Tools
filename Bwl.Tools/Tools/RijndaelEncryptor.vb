@@ -18,24 +18,26 @@ Imports System.Security.Cryptography
 Public NotInheritable Class RijndaelEncryptor
     Implements IDisposable
     Private Const _blockSize = 32 '256 bit
-    Private _IV() As Byte
+    Private _IV As Byte()
     Private _decryptor As ICryptoTransform
     Private _encryptor As ICryptoTransform
     Private _hash256 As SHA256Managed
     Private _hash512 As SHA512Managed
-    Private _key() As Byte
+    Private _key As Byte()
+    Private _padding As Boolean
     Private _rijndael As RijndaelManaged
 
-    Public Shared Function Encode(inputData As Byte(), key() As Byte,
-                                  Optional hashIterations As Integer = 1,
-                                  Optional usePadding As Boolean = True) As Byte()
+    Public Shared Function Encode(inputData As Byte(),
+                                  key As Byte(),
+                                  hashIterations As Integer,
+                                  usePadding As Boolean) As Byte()
         If Not usePadding AndAlso inputData.Length Mod _blockSize <> 0 Then
             Throw New Exception("RijndaelEncryptor.Encode(): Not usePadding AndAlso inputData.Length Mod _blockSize <> 0")
         End If
-        If Not (key IsNot Nothing AndAlso key.Length <> 0) Then
+        If key Is Nothing OrElse key.Length = 0 Then
             key = New Byte() {0}
         End If
-        Dim encryptor As New RijndaelEncryptor(key, hashIterations)
+        Dim encryptor As New RijndaelEncryptor(key, hashIterations, False) 'Управляем выравниванием вручную!
         Dim outputStream = New MemoryStream()
         Dim outputCryptoStream = encryptor.WrapStream(outputStream, True)
         Dim paddingLength = _blockSize - (inputData.Length Mod _blockSize)
@@ -53,19 +55,20 @@ Public NotInheritable Class RijndaelEncryptor
         Return outputData
     End Function
 
-    Public Shared Function Decode(inputData As Byte(), key() As Byte,
-                                  Optional hashIterations As Integer = 1,
-                                  Optional usePadding As Boolean = True) As Byte()
+    Public Shared Function Decode(inputData As Byte(),
+                                  key As Byte(),
+                                  hashIterations As Integer,
+                                  usePadding As Boolean) As Byte()
         If Not usePadding AndAlso inputData.Length Mod _blockSize <> 0 Then
             Throw New Exception("RijndaelEncryptor.Decode(): Not usePadding AndAlso inputData.Length Mod _blockSize <> 0")
         End If
         If usePadding AndAlso (inputData.Length - 1) Mod _blockSize <> 0 Then
-            Throw New Exception("RijndaelEncryptor.Decode(): usePadding AndAlso inputData.Length - 1 Mod _blockSize <> 0")
+            Throw New Exception("RijndaelEncryptor.Decode(): usePadding AndAlso (inputData.Length - 1) Mod _blockSize <> 0")
         End If
-        If Not (key IsNot Nothing AndAlso key.Length <> 0) Then
+        If key Is Nothing OrElse key.Length = 0 Then
             key = New Byte() {0}
         End If
-        Dim encryptor As New RijndaelEncryptor(key, hashIterations)
+        Dim encryptor As New RijndaelEncryptor(key, hashIterations, False) 'Управляем выравниванием вручную!
         Dim data = If(usePadding, New Byte(inputData.Length - 2) {}, New Byte(inputData.Length - 1) {})
         Array.Copy(inputData, data, data.Length)
         Dim outputStream = New MemoryStream(data)
@@ -84,8 +87,8 @@ Public NotInheritable Class RijndaelEncryptor
     Public Sub New()
     End Sub
 
-    Public Sub New(password() As Byte, Optional hashIterations As Integer = 1)
-        Initialize(password, hashIterations)
+    Public Sub New(password As Byte(), hashIterations As Integer, padding As Boolean)
+        Initialize(password, hashIterations, padding)
     End Sub
 
     Public Sub Dispose() Implements IDisposable.Dispose
@@ -102,9 +105,9 @@ Public NotInheritable Class RijndaelEncryptor
         End Set
     End Property
 
-    Private Sub Hash(data() As Byte, hashIterations As Integer, ByRef key() As Byte, ByRef IV() As Byte)
-        Dim hash512Buff() As Byte = _hash512.ComputeHash(data)
-        Dim hash256Buff() As Byte = _hash256.ComputeHash(data)
+    Private Sub Hash(data As Byte(), hashIterations As Integer, ByRef key As Byte(), ByRef IV As Byte())
+        Dim hash512Buff = _hash512.ComputeHash(data)
+        Dim hash256Buff = _hash256.ComputeHash(data)
         For i = 1 To hashIterations - 1
             hash512Buff = _hash512.ComputeHash(hash512Buff)
             hash256Buff = _hash256.ComputeHash(hash256Buff)
@@ -113,17 +116,20 @@ Public NotInheritable Class RijndaelEncryptor
         IV = _hash256.ComputeHash(hash256Buff)
     End Sub
 
-    Public Sub Initialize(password() As Byte, Optional hashIterations As Integer = 1)
+    Public Sub Initialize(password As Byte(), hashIterations As Integer, padding As Boolean)
         If hashIterations < 1 Then
             Throw New Exception("RijndaelEncryptor.Initialize(): hashIterations < 1")
         End If
+        _padding = padding
         Clear()
         Hash(password, hashIterations, _key, _IV)
-        _rijndael.Mode = CipherMode.CBC
-        _rijndael.KeySize = (_key.Length << 3)
-        _rijndael.BlockSize = _rijndael.KeySize
-        _rijndael.Key = _key
-        _rijndael.IV = _IV
+        With _rijndael
+            .Mode = CipherMode.CBC
+            .KeySize = (_key.Length << 3)
+            .BlockSize = _rijndael.KeySize
+            .Key = _key
+            .IV = _IV
+        End With
         _encryptor = _rijndael.CreateEncryptor()
         _decryptor = _rijndael.CreateDecryptor()
         IsInitialized = True
@@ -138,12 +144,12 @@ Public NotInheritable Class RijndaelEncryptor
         If _rijndael IsNot Nothing Then _rijndael.Clear()
         _hash256 = New SHA256Managed()
         _hash512 = New SHA512Managed()
-        _rijndael = New RijndaelManaged() With {.Padding = PaddingMode.None}
+        _rijndael = New RijndaelManaged() With {.Padding = If(_padding, PaddingMode.ISO10126, PaddingMode.None)}
     End Sub
 
     Public Function WrapStream(stream As Stream, encryptionMode As Boolean) As Stream
         If Not IsInitialized Then
-            Throw New Exception("RijndaelEncryptor is not initialized!")
+            Throw New Exception("RijndaelEncryptor.WrapStream(): Not initialized!")
         End If
         Return If(encryptionMode, New CryptoStream(stream, _encryptor, CryptoStreamMode.Write), New CryptoStream(stream, _decryptor, CryptoStreamMode.Read))
     End Function
