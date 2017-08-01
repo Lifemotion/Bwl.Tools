@@ -18,6 +18,7 @@ Imports System.Security.Cryptography
 Public NotInheritable Class RijndaelEncryptor
     Implements IDisposable
     Private Const _blockSize = 32 '256 bit
+    Private Const _hashIterationsDefault = 262144 '2^18
     Private _IV As Byte()
     Private _decryptor As ICryptoTransform
     Private _encryptor As ICryptoTransform
@@ -27,57 +28,79 @@ Public NotInheritable Class RijndaelEncryptor
     Private _padding As Boolean
     Private _rijndael As RijndaelManaged
 
-    Public Shared Function Encode(inputData As Byte(),
-                                  key As Byte(),
+    Public Shared Function Encode(data As Byte(),
+                                  password As Byte()) As Byte()
+        Return Encode(data, password, _hashIterationsDefault, True)
+    End Function
+
+    Public Shared Function Encode(data As Byte(),
+                                  password As Byte(),
+                                  usePadding As Boolean) As Byte()
+        Return Encode(data, password, _hashIterationsDefault, usePadding)
+    End Function
+
+    Public Shared Function Encode(data As Byte(),
+                                  password As Byte(),
                                   hashIterations As Integer,
                                   usePadding As Boolean) As Byte()
-        If Not usePadding AndAlso inputData.Length Mod _blockSize <> 0 Then
+        If Not usePadding AndAlso data.Length Mod _blockSize <> 0 Then
             Throw New Exception("RijndaelEncryptor.Encode(): Not usePadding AndAlso inputData.Length Mod _blockSize <> 0")
         End If
-        If key Is Nothing OrElse key.Length = 0 Then
-            key = New Byte() {0}
+        If password Is Nothing OrElse password.Length = 0 Then
+            password = New Byte() {0}
         End If
-        Dim encryptor As New RijndaelEncryptor(key, hashIterations, False) 'Управляем выравниванием вручную!
+        Dim encryptor As New RijndaelEncryptor(password, hashIterations, False) 'Управляем выравниванием вручную!
         Dim outputStream = New MemoryStream()
         Dim outputCryptoStream = encryptor.WrapStream(outputStream, True)
-        Dim paddingLength = _blockSize - (inputData.Length Mod _blockSize)
+        Dim paddingLength = _blockSize - (data.Length Mod _blockSize)
         If paddingLength = _blockSize Then paddingLength = 0
         Dim padding = New Byte(paddingLength - 1) {}
         Dim rng As New RNGCryptoServiceProvider() : rng.GetBytes(padding)
-        outputCryptoStream.Write(inputData, 0, inputData.Length)
+        outputCryptoStream.Write(data, 0, data.Length)
         outputCryptoStream.Write(padding, 0, padding.Length)
         CType(outputCryptoStream, CryptoStream).FlushFinalBlock()
         If usePadding Then outputStream.WriteByte(((CByte(paddingLength) << 3) And &HF8) Or (DateTime.Now.Ticks And &H7))
         outputStream.Flush() : outputStream.Seek(0, SeekOrigin.Begin)
-        Dim outputBlocksCount = CInt(Math.Ceiling(inputData.Length / _blockSize))
+        Dim outputBlocksCount = CInt(Math.Ceiling(data.Length / _blockSize))
         Dim outputData = outputStream.GetBuffer() : Array.Resize(outputData, (outputBlocksCount * _blockSize) + If(usePadding, 1, 0))
         encryptor.Dispose()
         Return outputData
     End Function
 
-    Public Shared Function Decode(inputData As Byte(),
-                                  key As Byte(),
+    Public Shared Function Decode(data As Byte(),
+                                  password As Byte()) As Byte()
+        Return Decode(data, password, _hashIterationsDefault, True)
+    End Function
+
+    Public Shared Function Decode(data As Byte(),
+                                  password As Byte(),
+                                  usePadding As Boolean) As Byte()
+        Return Decode(data, password, _hashIterationsDefault, usePadding)
+    End Function
+
+    Public Shared Function Decode(data As Byte(),
+                                  password As Byte(),
                                   hashIterations As Integer,
                                   usePadding As Boolean) As Byte()
-        If Not usePadding AndAlso inputData.Length Mod _blockSize <> 0 Then
+        If Not usePadding AndAlso data.Length Mod _blockSize <> 0 Then
             Throw New Exception("RijndaelEncryptor.Decode(): Not usePadding AndAlso inputData.Length Mod _blockSize <> 0")
         End If
-        If usePadding AndAlso (inputData.Length - 1) Mod _blockSize <> 0 Then
+        If usePadding AndAlso (data.Length - 1) Mod _blockSize <> 0 Then
             Throw New Exception("RijndaelEncryptor.Decode(): usePadding AndAlso (inputData.Length - 1) Mod _blockSize <> 0")
         End If
-        If key Is Nothing OrElse key.Length = 0 Then
-            key = New Byte() {0}
+        If password Is Nothing OrElse password.Length = 0 Then
+            password = New Byte() {0}
         End If
-        Dim encryptor As New RijndaelEncryptor(key, hashIterations, False) 'Управляем выравниванием вручную!
-        Dim data = If(usePadding, New Byte(inputData.Length - 2) {}, New Byte(inputData.Length - 1) {})
-        Array.Copy(inputData, data, data.Length)
-        Dim outputStream = New MemoryStream(data)
+        Dim encryptor As New RijndaelEncryptor(password, hashIterations, False) 'Управляем выравниванием вручную!
+        Dim out = If(usePadding, New Byte(data.Length - 2) {}, New Byte(data.Length - 1) {})
+        Array.Copy(data, out, out.Length)
+        Dim outputStream = New MemoryStream(out)
         Dim inputStream = encryptor.WrapStream(outputStream, False)
         Dim dataStream As New MemoryStream()
         inputStream.CopyTo(dataStream)
         dataStream.Flush() : dataStream.Seek(0, SeekOrigin.Begin)
         Dim decBytesWithPadding = dataStream.GetBuffer() : Array.Resize(decBytesWithPadding, CInt(dataStream.Length))
-        Dim paddingLength = If(usePadding, (CByte(inputData(inputData.Length - 1) >> 3)) And &H1F, 0)
+        Dim paddingLength = If(usePadding, (CByte(data(data.Length - 1) >> 3)) And &H1F, 0)
         Dim decBytes = New Byte((decBytesWithPadding.Length - paddingLength) - 1) {}
         Array.Copy(decBytesWithPadding, decBytes, decBytes.Length)
         encryptor.Dispose()
@@ -85,6 +108,10 @@ Public NotInheritable Class RijndaelEncryptor
     End Function
 
     Public Sub New()
+    End Sub
+
+    Public Sub New(password As Byte(), padding As Boolean)
+        Initialize(password, _hashIterationsDefault, padding)
     End Sub
 
     Public Sub New(password As Byte(), hashIterations As Integer, padding As Boolean)
@@ -104,17 +131,6 @@ Public NotInheritable Class RijndaelEncryptor
             _isInitialized = value
         End Set
     End Property
-
-    Private Sub Hash(data As Byte(), hashIterations As Integer, ByRef key As Byte(), ByRef IV As Byte())
-        Dim hash512Buff = _hash512.ComputeHash(data)
-        Dim hash256Buff = _hash256.ComputeHash(data)
-        For i = 1 To hashIterations - 1
-            hash512Buff = _hash512.ComputeHash(hash512Buff)
-            hash256Buff = _hash256.ComputeHash(hash256Buff)
-        Next
-        key = _hash256.ComputeHash(hash512Buff)
-        IV = _hash256.ComputeHash(hash256Buff)
-    End Sub
 
     Public Sub Initialize(password As Byte(), hashIterations As Integer, padding As Boolean)
         If hashIterations < 1 Then
@@ -153,6 +169,17 @@ Public NotInheritable Class RijndaelEncryptor
         End If
         Return If(encryptionMode, New CryptoStream(stream, _encryptor, CryptoStreamMode.Write), New CryptoStream(stream, _decryptor, CryptoStreamMode.Read))
     End Function
+
+    Private Sub Hash(data As Byte(), hashIterations As Integer, ByRef key As Byte(), ByRef IV As Byte())
+        Dim hash512Buff = _hash512.ComputeHash(data)
+        Dim hash256Buff = _hash256.ComputeHash(data)
+        For i = 1 To hashIterations - 1
+            hash512Buff = _hash512.ComputeHash(hash512Buff)
+            hash256Buff = _hash256.ComputeHash(hash256Buff)
+        Next
+        key = _hash256.ComputeHash(hash512Buff)
+        IV = _hash256.ComputeHash(hash256Buff)
+    End Sub
 
     Private Shared Sub ClearArray(Of T)(array() As T)
         If array Is Nothing Then Return
