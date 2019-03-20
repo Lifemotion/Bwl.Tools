@@ -1,11 +1,9 @@
 ﻿Imports System.Runtime.Remoting.Messaging
 Imports System.Runtime.Serialization
 Imports Microsoft.VisualStudio.TestTools.UnitTesting
-
 <TestClass> Public Class SerializerTest
-
     <TestMethod()> Public Sub SerializerTest()
-        Dim data As New ExampleClass(16,"example")
+        Dim data As New ExampleClass(16, "example")
         Try
             Dim result1 = Serializer.SaveObjectToJsonBytes(data)
             Dim result2 = Serializer.SaveObjectToJsonString(data)
@@ -13,20 +11,18 @@ Imports Microsoft.VisualStudio.TestTools.UnitTesting
             Dim result4 = Serializer.LoadObjectFromJsonString(Of ExampleClass)(result2)
 
             Assert.AreEqual(result3.Number, result4.Number)
-            Assert.AreEqual(result3.text, result4.text)
+            Assert.AreEqual(result3.Text, result4.Text)
 
             Assert.AreEqual(result3.Number, data.Number)
-            Assert.AreEqual(result3.text, data.text)
+            Assert.AreEqual(result3.Text, data.Text)
 
             Assert.AreEqual(result4.Number, data.Number)
-            Assert.AreEqual(result4.text, data.text)
+            Assert.AreEqual(result4.Text, data.Text)
         Catch ex As Exception
             Throw
         End Try
     End Sub
-    
 End Class
-
 
 <DataContract>
 Public Class ExampleClass
