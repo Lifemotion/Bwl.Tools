@@ -88,6 +88,7 @@
     <Compile Include="ToolsTests\IniTest.vb" />
     <Compile Include="ToolsTests\JpegSaverTest.vb" />
     <Compile Include="ToolsTests\RegistrySettingsTest.vb" />
+    <Compile Include="ToolsTests\RunLimiterTest.vb" />
     <Compile Include="ToolsTests\StreamPassportTest.vb" />
     <Compile Include="ToolsTests\RijndaelEncryptorTest.vb" />
     <Compile Include="ToolsTests\SerializerTest.vb" />
@@ -100,6 +101,7 @@
     <Compile Include="Tools\JpegSaver.vb" />
     <Compile Include="Tools\RegistrySettings.vb" />
     <Compile Include="Tools\RijndaelEncryptor.vb" />
+    <Compile Include="Tools\RunLimiter.vb" />
     <Compile Include="Tools\Serializer.vb" />
     <Compile Include="Tools\Stopwatch.vb" />
     <Compile Include="Tools\StreamPassport.vb" />
