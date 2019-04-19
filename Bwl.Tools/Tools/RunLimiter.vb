@@ -16,11 +16,11 @@
 ''' Ограничитель частоты вызовов какого-либо кода, например, записи в лог.
 ''' </summary>
 Public Class RunLimiter
-    Private _limitSeconds As Double
+    Private _periodMs As Double
     Private _runs As New Dictionary(Of String, DateTime)
 
-    Sub New(Optional limitSeconds As Double = 1)
-        _limitSeconds = limitSeconds
+    Sub New(Optional periodMs As Double = 1000)
+        _periodMs = periodMs
     End Sub
 
     Public Function Run(action As Action, Optional actionId As String = "noname") As Boolean
@@ -28,7 +28,7 @@ Public Class RunLimiter
         If Not _runs.ContainsKey(actionId) Then
             _runs.Add(actionId, DateTime.MinValue)
         End If
-        If (Now - _runs(actionId)).TotalSeconds >= _limitSeconds Then
+        If (Now - _runs(actionId)).TotalMilliseconds >= _periodMs Then
             action()
             _runs(actionId) = Now
             res = True
