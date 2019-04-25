@@ -88,12 +88,14 @@
     <Compile Include="ToolsTests\IniTest.vb" />
     <Compile Include="ToolsTests\JpegSaverTest.vb" />
     <Compile Include="ToolsTests\RegistrySettingsTest.vb" />
+    <Compile Include="ToolsTests\BitrateCalculatorTest.vb" />
     <Compile Include="ToolsTests\RunLimiterTest.vb" />
     <Compile Include="ToolsTests\StreamPassportTest.vb" />
     <Compile Include="ToolsTests\RijndaelEncryptorTest.vb" />
     <Compile Include="ToolsTests\SerializerTest.vb" />
     <Compile Include="ToolsTests\StopwatchTest.vb" />
     <Compile Include="ToolsTests\StringToolsTest.vb" />
+    <Compile Include="Tools\BitrateCalculator.vb" />
     <Compile Include="Tools\CryptoTools.vb" />
     <Compile Include="Tools\FieldMonitor.vb" />
     <Compile Include="Tools\Image.vb" />
