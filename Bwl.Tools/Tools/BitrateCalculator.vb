@@ -1,9 +1,7 @@
 ﻿Imports System.Threading
 
 Public Class BitrateCalculator
-    Private _dataCounts As New Queue(Of Integer)
-    Private _sw As New System.Diagnostics.Stopwatch
-
+    Private _dataCounts As New Queue(Of KeyValuePair(Of DateTime, Integer))
     Private _syncRoot As New Object
 
     Public Property MaxHistorySize As Integer = 100
@@ -12,7 +10,10 @@ Public Class BitrateCalculator
         Get
             SyncLock _syncRoot
                 If _dataCounts.Count < 2 Then Return -1
-                Return (_dataCounts.Average() * 8) / (_sw.Elapsed.TotalSeconds * 1000 * 1000) 'Сетевой мегабит - степень десятки
+                Dim timeDelta = _dataCounts.Last().Key - _dataCounts.First().Key
+                Dim dataValues = _dataCounts.Select(Function(item) item.Value)
+                Dim dataSum = dataValues.Sum() - dataValues.First
+                Return (dataSum * 8) / (timeDelta.TotalSeconds * 1000 * 1000) 'Сетевой мегабит - степень десятки
             End SyncLock
         End Get
     End Property
@@ -27,19 +28,15 @@ Public Class BitrateCalculator
 
     Public Sub Update(dataCount As Integer)
         SyncLock _syncRoot
-            _dataCounts.Enqueue(dataCount)
-            If _dataCounts.Count > MaxHistorySize Then
+            _dataCounts.Enqueue(New KeyValuePair(Of Date, Integer)(Now, dataCount))
+            While _dataCounts.Count > MaxHistorySize
                 _dataCounts.Dequeue()
-            End If
+            End While
         End SyncLock
     End Sub
 
     Public Sub Reset()
         SyncLock _syncRoot
-            With _sw
-                .Reset()
-                .Start()
-            End With
             _dataCounts.Clear()
         End SyncLock
     End Sub

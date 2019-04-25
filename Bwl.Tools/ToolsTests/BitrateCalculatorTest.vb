@@ -1,6 +1,4 @@
-﻿Imports System.IO
-Imports System.Threading
-Imports System.Diagnostics
+﻿Imports System.Threading
 Imports Microsoft.VisualStudio.TestTools.UnitTesting
 
 <TestClass>
@@ -15,7 +13,7 @@ Public Class BitrateCalculatorTest
         Dim N = 10
         For i = 1 To N
             For id = 0 To bitrateIds.Length - 1
-                bitrateCalculators.Update(bitrateData(id), bitrateIds(id))
+                bitrateCalculators.Update(bitrateData(id) / N, bitrateIds(id))
             Next
             Thread.Sleep(1000 / N)
         Next
