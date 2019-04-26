@@ -19,20 +19,24 @@ Public Class RunLimiter
     Private _periodMs As Double
     Private _runs As New Dictionary(Of String, DateTime)
 
+    Private _syncRoot As New Object
+
     Sub New(Optional periodMs As Double = 1000)
         _periodMs = periodMs
     End Sub
 
     Public Function Run(action As Action, Optional actionId As String = "noname") As Boolean
-        Dim res As Boolean = False
-        If Not _runs.ContainsKey(actionId) Then
-            _runs.Add(actionId, DateTime.MinValue)
-        End If
-        If (Now - _runs(actionId)).TotalMilliseconds >= _periodMs Then
-            action()
-            _runs(actionId) = Now
-            res = True
-        End If
-        Return res
+        SyncLock _syncRoot
+            Dim res As Boolean = False
+            If Not _runs.ContainsKey(actionId) Then
+                _runs.Add(actionId, DateTime.MinValue)
+            End If
+            If (Now - _runs(actionId)).TotalMilliseconds >= _periodMs Then
+                action()
+                _runs(actionId) = Now
+                res = True
+            End If
+            Return res
+        End SyncLock
     End Function
 End Class
