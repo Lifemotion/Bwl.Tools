@@ -19,6 +19,19 @@ Public Class RunLimiter
     Private _periodMs As Double
     Private _runs As New Dictionary(Of String, DateTime)
 
+    Public Property PeriodMs As Double
+        Get
+            SyncLock _syncRoot
+                Return _periodMs
+            End SyncLock
+        End Get
+        Set(value As Double)
+            SyncLock _syncRoot
+                _periodMs = value
+            End SyncLock
+        End Set
+    End Property
+
     Private _syncRoot As New Object
 
     Sub New(Optional periodMs As Double = 1000)
