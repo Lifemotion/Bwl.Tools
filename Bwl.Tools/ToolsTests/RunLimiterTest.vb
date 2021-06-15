@@ -6,7 +6,7 @@ Imports Microsoft.VisualStudio.TestTools.UnitTesting
 <TestClass>
 Public Class RunLimiterTest
     <TestMethod()>
-    Public Sub RunLimiterTest()
+    Public Sub RunLimiterTest1()
         Dim periodMs = 100
         Dim runLimiter As New RunLimiter(periodMs)
         Dim activityTimes As New List(Of DateTime)
@@ -24,5 +24,16 @@ Public Class RunLimiterTest
         Dim activitiesMustBe = Math.Floor(experimentTimeMs / periodMs)
         Dim deltaPerc = Math.Abs(activityTimes.Count - activitiesMustBe) / activitiesMustBe 'Реальная отработка не должна сильно отличаться от расчетной
         Assert.IsTrue(deltaPerc < 0.1)
+    End Sub
+
+    <TestMethod()>
+    Public Sub RunLimiterTest2()
+        Dim runLimiter As New RunLimiter()
+        Try
+            runLimiter.Run(Sub()
+                               Throw New Exception("RunLimiterTest")
+                           End Sub)
+        Catch ex As Exception
+        End Try
     End Sub
 End Class
