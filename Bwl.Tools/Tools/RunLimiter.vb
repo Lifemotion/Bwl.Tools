@@ -38,15 +38,19 @@ Public Class RunLimiter
         _periodMs = periodMs
     End Sub
 
+    Sub New(period As TimeSpan)
+        Me.New(period.TotalMilliseconds)
+    End Sub
+
     Public Function Run(action As Action, Optional actionId As String = "noname") As Boolean
         SyncLock _syncRoot
             Dim res As Boolean = False
             If Not _runs.ContainsKey(actionId) Then
                 _runs.Add(actionId, DateTime.MinValue)
             End If
-            If (Now - _runs(actionId)).TotalMilliseconds >= _periodMs Then
+            If (DateTime.Now - _runs(actionId)).TotalMilliseconds >= _periodMs Then
                 action()
-                _runs(actionId) = Now
+                _runs(actionId) = DateTime.Now
                 res = True
             End If
             Return res
