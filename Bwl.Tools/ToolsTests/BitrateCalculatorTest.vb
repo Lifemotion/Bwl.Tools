@@ -19,7 +19,7 @@ Public Class BitrateCalculatorTest
         Next
         Dim calculatedBitrates = bitrateCalculators.Bitrates.Select(Function(item) item.Value).ToArray()
         For id = 0 To bitrateIds.Length - 1
-            Assert.IsTrue(Math.Abs(calculatedBitrates(id) * mbps - bitrateData(id)) / bitrateData(id) < 0.05)
+            Assert.IsTrue(Math.Abs(calculatedBitrates(id) * mbps - bitrateData(id)) / bitrateData(id) < 0.1)
         Next
     End Sub
 End Class

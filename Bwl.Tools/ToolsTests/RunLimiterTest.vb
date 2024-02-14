@@ -1,12 +1,10 @@
-﻿Imports System.IO
-Imports System.Threading
-Imports System.Diagnostics
+﻿Imports System.Threading
 Imports Microsoft.VisualStudio.TestTools.UnitTesting
 
 <TestClass>
 Public Class RunLimiterTest
     <TestMethod()>
-    Public Sub RunLimiterTest1()
+    Public Sub RunLimiterActivityTest()
         Dim periodMs = 100
         Dim runLimiter As New RunLimiter(periodMs)
         Dim activityTimes As New List(Of DateTime)
@@ -27,13 +25,35 @@ Public Class RunLimiterTest
     End Sub
 
     <TestMethod()>
-    Public Sub RunLimiterTest2()
-        Dim runLimiter As New RunLimiter()
-        Try
-            runLimiter.Run(Sub()
-                               Throw New Exception("RunLimiterTest")
-                           End Sub)
-        Catch ex As Exception
-        End Try
+    Public Sub RunLimiterMemoryCleanTest()
+        Dim nRuns = 1000
+        Dim runLimiter1 As New RunLimiter(periodMs:=1, memoryDepthPeriods:=0, memorySizeMax:=0, memoryCleanPeriodMs:=0)
+        Dim runLimiter2 As New RunLimiter(periodMs:=1, memoryDepthPeriods:=2, memorySizeMax:=nRuns, memoryCleanPeriodMs:=10000)
+        For i = 1 To nRuns
+            runLimiter1.Run(Sub()
+                            End Sub, Guid.NewGuid.ToString("B"))
+            runLimiter2.Run(Sub()
+                            End Sub, Guid.NewGuid.ToString("B"))
+            Thread.Sleep(1)
+        Next
+        Assert.IsTrue(runLimiter1.Count = 1)
+        Assert.IsTrue(runLimiter2.Count = nRuns)
+    End Sub
+
+    <TestMethod()>
+    Public Sub RunLimiterSuppressExceptionsTest()
+        For Each suppressExceptions In {False, True}
+            Dim exceptionDetected = False
+            Dim exceptionExpected = Not suppressExceptions
+            Dim runLimiter As New RunLimiter()
+            Try
+                runLimiter.Run(Sub()
+                                   Throw New Exception("RunLimiterTest")
+                               End Sub, suppressExceptions:=suppressExceptions)
+            Catch ex As Exception
+                exceptionDetected = True
+            End Try
+            Assert.IsTrue(exceptionDetected = exceptionExpected)
+        Next
     End Sub
 End Class

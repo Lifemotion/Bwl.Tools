@@ -12,7 +12,9 @@
 '   See the License For the specific language governing permissions And
 '   limitations under the License.
 
+Imports System.Linq
 Imports System.Threading
+Imports System.Collections.Generic
 
 Public Class BitrateCalculator
     Private _dataCounts As New Queue(Of KeyValuePair(Of DateTime, Integer))
