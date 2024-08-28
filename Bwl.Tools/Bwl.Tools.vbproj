@@ -88,6 +88,7 @@
     <Compile Include="ToolsTests\ImageTest.vb" />
     <Compile Include="ToolsTests\IniTest.vb" />
     <Compile Include="ToolsTests\JpegSaverTest.vb" />
+    <Compile Include="ToolsTests\MicroLoggerTest.vb" />
     <Compile Include="ToolsTests\RegistrySettingsTest.vb" />
     <Compile Include="ToolsTests\BitrateCalculatorTest.vb" />
     <Compile Include="ToolsTests\RunLimiterTest.vb" />
@@ -102,6 +103,7 @@
     <Compile Include="Tools\Image.vb" />
     <Compile Include="Tools\IniFile.vb" />
     <Compile Include="Tools\JpegSaver.vb" />
+    <Compile Include="Tools\MicroLogger.vb" />
     <Compile Include="Tools\RegistrySettings.vb" />
     <Compile Include="Tools\RijndaelEncryptor.vb" />
     <Compile Include="Tools\RunLimiter.vb" />
