@@ -25,6 +25,9 @@ Public Class MicroLoggerTest
 
             'Write
             Using logger = New MicroLogger(logPath, logFileName, updateDelayMs)
+                AddHandler logger.OnException, Sub(sender As Object, ex As Exception)
+                                                   Throw ex
+                                               End Sub
                 Dim sourceLines As New ConcurrentQueue(Of String)
                 For i = 0 To stringCount - 1
                     sourceLines.Enqueue(i)
