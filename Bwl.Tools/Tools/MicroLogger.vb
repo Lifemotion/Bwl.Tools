@@ -1,5 +1,6 @@
 ﻿Imports System.IO
 Imports System.Threading
+Imports System.Threading.Tasks
 Imports System.Collections.Concurrent
 
 Public Class MicroLogger
@@ -27,15 +28,6 @@ Public Class MicroLogger
         _lines.Enqueue($"{DateTime.Now.ToString("<dd.MM.yyyy HH:mm:ss.fff>")}{messageTypeMarker}{message}")
     End Sub
 
-    Public Overridable Sub Dispose() Implements IDisposable.Dispose
-        Dim task = Interlocked.Exchange(_task, Nothing)
-        If task IsNot Nothing Then
-            _cts.Cancel()
-            task.Wait()
-            _cts.Dispose()
-        End If
-    End Sub
-
     Private Sub WriteTask(ct As CancellationToken)
         Do While Not ct.IsCancellationRequested OrElse _lines.Any()
             Try
@@ -57,5 +49,14 @@ Public Class MicroLogger
                 Thread.Sleep(UpdateDelayMs)
             End Try
         Loop
+    End Sub
+
+    Public Overridable Sub Dispose() Implements IDisposable.Dispose
+        Dim task = Interlocked.Exchange(_task, Nothing)
+        If task IsNot Nothing Then
+            _cts.Cancel()
+            task.Wait()
+            _cts.Dispose()
+        End If
     End Sub
 End Class
