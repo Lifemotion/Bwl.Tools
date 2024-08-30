@@ -8,7 +8,7 @@ Public Class MicroLogger
 
     Private _linesToWrite As New ConcurrentQueue(Of String)()
     Private _loggerTask As Task
-    Private _disposeUtcTicks As Long = -1
+    Private _stopRequestTicks As Long
 
     Public Property Path As String
     Public Property FileName As String
@@ -19,12 +19,15 @@ Public Class MicroLogger
 
     Public Sub New(path As String, fileName As String,
                    Optional updateDelayMs As Integer = 1000,
-                   Optional unsavedAwaitMs As Integer = 5000)
+                   Optional unsavedAwaitMs As Integer = 5000,
+                   Optional start As Boolean = False)
         Me.Path = path
         Me.FileName = fileName
         Me.UpdateDelayMs = updateDelayMs
         Me.UnsavedAwaitMs = unsavedAwaitMs
-        _loggerTask = Task.Run(AddressOf LoggerTask)
+        If start Then
+            Me.Start()
+        End If
     End Sub
 
     Public Sub AddMessage(message As String, Optional messageType As String = "")
@@ -32,18 +35,43 @@ Public Class MicroLogger
         _linesToWrite.Enqueue($"{DateTime.Now.ToString("<dd.MM.yyyy HH:mm:ss.fff>")}{messageTypeMarker}{message}")
     End Sub
 
+    Public Function Start() As Boolean
+        Dim result = False
+        Dim task = New Task(AddressOf LoggerTask)
+        If Interlocked.CompareExchange(_loggerTask, task, Nothing) Is Nothing Then
+            Interlocked.Exchange(_stopRequestTicks, -1)
+            task.Start()
+            result = True
+        End If
+        Return result
+    End Function
+
+    Public Function [Stop]() As Boolean
+        Dim result = False
+        Dim task = Interlocked.Exchange(_loggerTask, Nothing)
+        If task IsNot Nothing Then
+            Interlocked.Exchange(_stopRequestTicks, DateTime.UtcNow.Ticks)
+            task.Wait()
+            result = True
+        End If
+        Return result
+    End Function
+
     Private Sub LoggerTask()
-        While DisposeRequested() Is Nothing OrElse (_linesToWrite.Any() AndAlso DisposeRequested().Value <= UnsavedAwaitMs)
+        While WasStopped() = 0 OrElse LoggingIsActual()
             Try
-                If _linesToWrite.Any() Then
+                If LoggingIsActual() Then
                     Dim pf = (Me.Path, Me.FileName)
                     If Not String.IsNullOrWhiteSpace(pf.Path) AndAlso Not Directory.Exists(pf.Path) Then
                         Directory.CreateDirectory(pf.Path)
                     End If
                     Using sw = File.AppendText(IO.Path.Combine(pf.Path, pf.FileName))
-                        Dim line As String = Nothing
-                        While _linesToWrite.TryDequeue(line)
-                            sw.WriteLine(line)
+                        While LoggingIsActual()
+                            Dim line = _linesToWrite.FirstOrDefault()
+                            If line IsNot Nothing Then
+                                sw.WriteLine(line)
+                            End If
+                            _linesToWrite.TryDequeue(Nothing)
                         End While
                     End Using
                 End If
@@ -54,20 +82,26 @@ Public Class MicroLogger
             End Try
         End While
         If _linesToWrite.Any() Then
+            DropLines()
             RaiseEvent OnException(Me, New Exception($"Unsaved lines"))
         End If
     End Sub
 
-    Private Function DisposeRequested() As Double?
-        Dim disposeUtcTicks = Interlocked.Read(_disposeUtcTicks)
-        Return If(disposeUtcTicks < 0, DirectCast(Nothing, Double?), TimeSpan.FromTicks(DateTime.UtcNow.Ticks - disposeUtcTicks).TotalMilliseconds)
+    Private Function LoggingIsActual() As Boolean
+        Return _linesToWrite.Any() AndAlso WasStopped() <= UnsavedAwaitMs
     End Function
 
+    Private Function WasStopped() As Double
+        Dim stopRequestTicks = Interlocked.Read(_stopRequestTicks)
+        Return If(stopRequestTicks < 0, 0, TimeSpan.FromTicks(DateTime.UtcNow.Ticks - stopRequestTicks).TotalMilliseconds)
+    End Function
+
+    Private Sub DropLines()
+        While _linesToWrite.TryDequeue(Nothing)
+        End While
+    End Sub
+
     Public Overridable Sub Dispose() Implements IDisposable.Dispose
-        Dim task = Interlocked.Exchange(_loggerTask, Nothing)
-        If task IsNot Nothing Then
-            Interlocked.Exchange(_disposeUtcTicks, DateTime.UtcNow.Ticks)
-            task.Wait()
-        End If
+        [Stop]()
     End Sub
 End Class

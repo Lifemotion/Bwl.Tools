@@ -12,22 +12,40 @@ Public Class MicroLoggerTest
         Dim logPath = String.Empty
         Dim logFileName = "MicroLoggerTest.log"
 
-        Dim cleaningAction = Sub()
-                                 Try
-                                     File.Delete(Path.Combine(logPath, logFileName))
-                                 Catch
-                                 End Try
-                             End Sub
+        Dim removeLogFile = Sub()
+                                Try
+                                    File.Delete(Path.Combine(logPath, logFileName))
+                                Catch
+                                End Try
+                            End Sub
 
+        'Log update delays
         For Each updateDelayMs In {10, 100, 1000}
-            'Clean
-            cleaningAction()
+            removeLogFile()
 
-            'Write
+            'Write log data
             Using logger = New MicroLogger(logPath, logFileName, updateDelayMs)
                 AddHandler logger.OnException, Sub(sender As Object, ex As Exception)
                                                    Throw ex
                                                End Sub
+                'Start/Stop test
+                logger.Start()
+                logger.Stop()
+
+                logger.Start()
+                logger.Start()
+                logger.Stop()
+                logger.Stop()
+
+                logger.Stop()
+                logger.Start()
+                logger.Stop()
+
+                logger.Start()
+                logger.Stop()
+                logger.Start()
+
+                'Log lines to write
                 Dim sourceLines As New ConcurrentQueue(Of String)
                 For i = 0 To stringCount - 1
                     sourceLines.Enqueue(i)
@@ -45,7 +63,7 @@ Public Class MicroLoggerTest
                 threads.AsParallel().ForAll(Sub(thr As Thread) thr.Join())
             End Using
 
-            'Read
+            'Read lines from log file and compare
             Dim targetLinesDic As New Dictionary(Of String, Integer)
             For Each line In File.ReadAllLines(Path.Combine(logPath, logFileName))
                 line = line.Split(" ").Last()
@@ -60,8 +78,7 @@ Public Class MicroLoggerTest
                 End If
             Next
 
-            'Clean
-            cleaningAction()
+            removeLogFile()
         Next
     End Sub
 End Class
