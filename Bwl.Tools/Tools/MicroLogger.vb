@@ -30,10 +30,15 @@ Public Class MicroLogger
         End If
     End Sub
 
-    Public Sub AddMessage(message As String, Optional messageType As String = "")
-        Dim messageTypeMarker = If(Not String.IsNullOrWhiteSpace(messageType), $" [{messageType}] ", "")
-        _linesToWrite.Enqueue($"{DateTime.Now.ToString("<dd.MM.yyyy HH:mm:ss.fff>")}{messageTypeMarker}{message}")
-    End Sub
+    Public Function AddMessage(message As String, Optional messageType As String = "") As Boolean
+        Dim result = False
+        If _loggerTask IsNot Nothing Then
+            Dim messageTypeMarker = If(Not String.IsNullOrWhiteSpace(messageType), $" [{messageType}] ", "")
+            _linesToWrite.Enqueue($"{DateTime.Now.ToString("<dd.MM.yyyy HH:mm:ss.fff>")}{messageTypeMarker}{message}")
+            result = True
+        End If
+        Return result
+    End Function
 
     Public Function Start() As Boolean
         Dim result = False
